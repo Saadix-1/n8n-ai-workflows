@@ -1,0 +1,177 @@
+{
+  "name": "Assistant Voyage + Météo",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "chat-trigger-1",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Tu es Marco, un assistant voyage expert et passionné. Tu aides les utilisateurs à planifier leurs voyages de rêve avec enthousiasme et précision.\n\nTes spécialités :\n- Recommandations de destinations selon le budget, la saison et les envies\n- Conseils sur les visas, vaccins et documents nécessaires\n- Création d'itinéraires détaillés jour par jour\n- Conseils sur les hôtels, restaurants et activités incontournables\n- Informations sur les transports locaux et vols\n- Alertes sécurité et conseils pratiques\n\nTu utilises TOUJOURS :\n- L'outil météo quand l'utilisateur demande la météo d'une ville ou veut savoir quel temps il fait\n- L'outil de recherche web pour les infos récentes (prix de vols, événements, alertes voyage)\n\nTu réponds toujours en français, avec chaleur et enthousiasme. Tu utilises des emojis pour rendre tes réponses vivantes ✈️🌍🏖️. Tu termines toujours par une question pour affiner les besoins du voyageur."
+        }
+      },
+      "id": "ai-agent-1",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "id": "openai-chat-1",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [360, 540],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "sessionKey": "sessionId",
+        "contextWindowLength": 20
+      },
+      "id": "memory-1",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [560, 540]
+    },
+    {
+      "parameters": {
+        "name": "recherche_web",
+        "description": "Recherche des informations actuelles sur le web sur les voyages : prix de vols, événements locaux, alertes sécurité, conditions d'entrée dans un pays, recommandations récentes. Utilise cet outil pour toute information qui pourrait avoir changé récemment.",
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $fromAI('query', 'La requête de recherche voyage à envoyer') }}"
+            },
+            {
+              "name": "api_key",
+              "value": "VOTRE_CLE_SERPAPI"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            },
+            {
+              "name": "hl",
+              "value": "fr"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "web-search-tool-1",
+      "name": "Recherche Web",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [660, 540]
+    },
+    {
+      "parameters": {
+        "name": "meteo",
+        "description": "Obtient la météo actuelle et les prévisions pour n'importe quelle ville dans le monde. Utilise cet outil quand l'utilisateur demande la météo, le temps qu'il fait, la température, ou veut savoir si c'est une bonne période pour voyager dans une destination.",
+        "method": "GET",
+        "url": "https://wttr.in/{{ $fromAI('ville', 'Le nom de la ville dont on veut la météo, en anglais de préférence') }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "j1"
+            },
+            {
+              "name": "lang",
+              "value": "fr"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "meteo-tool-1",
+      "name": "Météo",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [860, 540]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recherche Web": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Météo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

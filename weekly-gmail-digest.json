@@ -1,0 +1,130 @@
+{
+  "name": "Weekly Gmail Digest — Lundi 8h",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-1",
+      "name": "Chaque Lundi 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "q": "after:{{ new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '/') }}"
+        },
+        "returnAll": false,
+        "limit": 50,
+        "options": {}
+      },
+      "id": "gmail-fetch-1",
+      "name": "Récupérer emails de la semaine",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [460, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail Saad perso"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Ignore les emails automatiques\nconst skipKeywords = ['noreply', 'no-reply', 'newsletter', 'unsubscribe', 'notification', 'mailer-daemon'];\n\nconst emails = items\n  .map(item => item.json)\n  .filter(email => {\n    const from = email.from || '';\n    const subject = email.subject || '';\n    return !skipKeywords.some(k => \n      from.toLowerCase().includes(k) || \n      subject.toLowerCase().includes(k)\n    );\n  })\n  .map(email => ({\n    from: email.from || 'Inconnu',\n    subject: email.subject || '(Sans sujet)',\n    snippet: email.snippet || email.text?.substring(0, 200) || '',\n    date: email.internalDate \n      ? new Date(parseInt(email.internalDate)).toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})\n      : ''\n  }));\n\n// Formate pour l'IA\nconst emailList = emails.map((e, i) => \n  `Email ${i+1}:\\nDe: ${e.from}\\nSujet: ${e.subject}\\nDate: ${e.date}\\nAperçu: ${e.snippet}`\n).join('\\n\\n---\\n\\n');\n\nconst weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)\n  .toLocaleDateString('fr-FR', {day:'2-digit', month:'long'});\nconst weekEnd = new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});\n\nreturn [{\n  json: {\n    emailList,\n    totalEmails: emails.length,\n    weekRange: `${weekStart} - ${weekEnd}`\n  }\n}];"
+      },
+      "id": "prepare-1",
+      "name": "Préparer les emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Tu es un assistant personnel expert en productivité. Tu analyses des emails et crées des résumés hebdomadaires clairs, structurés et actionnables en français."
+            },
+            {
+              "role": "user",
+              "content": "Voici mes {{ $json.totalEmails }} emails de la semaine du {{ $json.weekRange }}.\n\nAnalyse-les et génère un digest hebdomadaire structuré avec :\n\n📊 STATISTIQUES\n- Nombre total d'emails\n- Expéditeurs les plus fréquents\n\n🔴 URGENT — Actions requises cette semaine\n(liste les emails nécessitant une réponse ou action immédiate)\n\n📌 IMPORTANT — À ne pas oublier\n(emails importants sans urgence immédiate)\n\n📁 INFORMATIF — Pour info\n(newsletters, notifications, FYI)\n\n✅ ACTIONS DE LA SEMAINE\n(liste consolidée de toutes les tâches à faire)\n\n💡 INSIGHT DE LA SEMAINE\n(une observation utile sur mes communications)\n\nVoici les emails :\n\n{{ $json.emailList }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "openai-digest-1",
+      "name": "Générer le digest IA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.item.json;\nconst stats = $('Préparer les emails').item.json;\n\nconst digest = \n  input?.content?.[0]?.text ||\n  input?.text ||\n  input?.choices?.[0]?.message?.content ||\n  'Digest non disponible';\n\nconst today = new Date().toLocaleDateString('fr-FR', {\n  weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'\n});\n\nreturn [{\n  json: {\n    to: 'saadmehamdi2018@gmail.com',\n    subject: `📬 Ton digest Gmail — Semaine du ${stats.weekRange}`,\n    body: `Bonjour Saad ! 👋\\n\\nVoici ton résumé hebdomadaire Gmail généré le ${today}.\\n${stats.totalEmails} emails analysés cette semaine.\\n\\n${'═'.repeat(50)}\\n\\n${digest}\\n\\n${'═'.repeat(50)}\\n\\nBonne semaine ! 🚀\\n— Ton assistant IA n8n`\n  }\n}];"
+      },
+      "id": "format-digest-1",
+      "name": "Formater le digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "gmail-send-digest-1",
+      "name": "Envoyer le digest",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1340, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail Saad perso"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Chaque Lundi 8h": {
+      "main": [[{"node": "Récupérer emails de la semaine", "type": "main", "index": 0}]]
+    },
+    "Récupérer emails de la semaine": {
+      "main": [[{"node": "Préparer les emails", "type": "main", "index": 0}]]
+    },
+    "Préparer les emails": {
+      "main": [[{"node": "Générer le digest IA", "type": "main", "index": 0}]]
+    },
+    "Générer le digest IA": {
+      "main": [[{"node": "Formater le digest", "type": "main", "index": 0}]]
+    },
+    "Formater le digest": {
+      "main": [[{"node": "Envoyer le digest", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
