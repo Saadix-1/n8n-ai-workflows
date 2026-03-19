@@ -55,6 +55,8 @@ Chat Trigger → AI Agent (GPT-4o-mini) → SerpAPI Web Search Tool
 - Responds in the user's language automatically
 
 **APIs used:** OpenAI GPT-4o-mini, SerpAPI
+<img width="1503" height="815" alt="Screenshot 2026-03-19 at 13 54 07" src="https://github.com/user-attachments/assets/7c05805e-b35e-4a33-b2a8-7dc772ca051f" />
+
 
 ---
 
@@ -80,6 +82,7 @@ Chat Trigger → AI Agent (GPT-4o-mini) → Tool: BBC News RSS
 - Cites its sources in every response
 
 **APIs used:** OpenAI GPT-4o-mini, BBC RSS, TheVerge RSS, HackerNews RSS
+<img width="1503" height="815" alt="Screenshot 2026-03-19 at 13 35 48" src="https://github.com/user-attachments/assets/ed7c56eb-0fac-46d0-a00d-51654924df84" />
 
 ---
 
@@ -104,6 +107,7 @@ Chat Trigger → AI Agent "Marco" → Tool 1: SerpAPI (travel info)
 - Handles itinerary planning, visa info, budget advice, and weather
 
 **APIs used:** OpenAI GPT-4o-mini, SerpAPI, wttr.in
+<img width="1503" height="815" alt="Screenshot 2026-03-19 at 13 36 49" src="https://github.com/user-attachments/assets/48757aaa-1581-460e-8fcb-c52a8443b7f9" />
 
 ---
 
@@ -128,6 +132,7 @@ Gmail Trigger (new email) → JS Filter Node → OpenAI Summarizer
 - Auto-reply pipeline with formatted email output
 
 **APIs used:** Gmail API (OAuth2), OpenAI GPT-4o-mini
+<img width="1503" height="572" alt="Screenshot 2026-03-19 at 13 33 52" src="https://github.com/user-attachments/assets/fcd0afa8-ddef-4dc2-b4e6-56cc64c2674d" />
 
 ---
 
@@ -152,6 +157,7 @@ Schedule Trigger (Mon 8AM) → Gmail Fetch (50 emails) → JS Preprocessor
 - Unix timestamp conversion to human-readable dates
 
 **APIs used:** Gmail API (OAuth2), OpenAI GPT-4o-mini
+<img width="1503" height="572" alt="Screenshot 2026-03-19 at 13 34 19" src="https://github.com/user-attachments/assets/1f25665a-8997-4be6-ab90-b0a4732d8c7c" />
 
 ---
 
